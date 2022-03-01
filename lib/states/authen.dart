@@ -1,10 +1,15 @@
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:officesv/models/user_model.dart';
 import 'package:officesv/utility/my_constant.dart';
 import 'package:officesv/utility/my_dialog.dart';
 import 'package:officesv/widgets/show_button.dart';
 import 'package:officesv/widgets/show_form.dart';
 import 'package:officesv/widgets/show_image.dart';
 import 'package:officesv/widgets/show_text.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Authen extends StatefulWidget {
   const Authen({
@@ -55,6 +60,7 @@ class _AuthenState extends State<Authen> {
               .normalDialot('Have Space', 'Please Fill Every Blank');
         } else {
           print('No Space');
+          processCheckAuthen();
         }
       },
     );
@@ -93,5 +99,42 @@ class _AuthenState extends State<Authen> {
       width: 250,
       child: ShowImage(),
     );
+  }
+
+  Future<void> processCheckAuthen() async {
+    String path =
+        'https://www.androidthai.in.th/sv/getUserWhereUserUng.php?isAdd=true&user=$user';
+    await Dio().get(path).then((value) async {
+      print('value from Server ==> $value');
+      if (value.toString() == 'null') {
+        MyDialog(context: context)
+            .normalDialot('User False', 'No $user in my Database');
+      } else {
+        var result = json.decode(value.data);
+        print('result = $result');
+        for (var item in result) {
+          print('item ==> $item');
+          UserModel userModel = UserModel.fromMap(item);
+          if (password == userModel.password) {
+            var value = <String>[];
+            value.add(userModel.id);
+            value.add(userModel.name);
+            value.add(userModel.user);
+
+            SharedPreferences preferences =
+                await SharedPreferences.getInstance();
+            preferences.setStringList('data', value).then((value) {
+               Navigator.pushNamedAndRemoveUntil(
+                context, '/myService', (route) => false);
+            });
+
+           
+          } else {
+            MyDialog(context: context).normalDialot(
+                'Password False', 'Please Try Again Password False');
+          }
+        }
+      }
+    });
   }
 }
