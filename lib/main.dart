@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:officesv/states/add_job.dart';
 import 'package:officesv/states/authen.dart';
 import 'package:officesv/states/my_service.dart';
 import 'package:officesv/utility/my_constant.dart';
@@ -9,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 final Map<String, WidgetBuilder> map = {
   '/authen': (context) => const Authen(),
   '/myService': (context) => const MyService(),
+  '/addJob':(context) => const AddJob(),
 };
 
 String? firstState;
@@ -27,7 +29,7 @@ Future<void> main() async {
     firstState = '/myService';
   }
 
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
