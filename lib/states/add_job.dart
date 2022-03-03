@@ -1,5 +1,9 @@
-import 'dart:io';
+// ignore_for_file: avoid_print
 
+import 'dart:io';
+import 'dart:math';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -9,6 +13,7 @@ import 'package:officesv/widgets/show_button.dart';
 import 'package:officesv/widgets/show_form.dart';
 import 'package:officesv/widgets/show_image.dart';
 import 'package:officesv/widgets/show_text.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AddJob extends StatefulWidget {
   const AddJob({
@@ -28,7 +33,7 @@ class _AddJobState extends State<AddJob> {
   ];
 
   int? choosedFactoryKey;
-  String? chooseAgree, addDate, jobName, detailJob;
+  String? chooseAgree, addDate, jobName, detailJob, userLogin;
 
   var itemChooses = <bool>[false, false, false];
   DateTime? dateTime;
@@ -43,6 +48,13 @@ class _AddJobState extends State<AddJob> {
     setState(() {
       addDate = dateFormat.format(dateTime!);
     });
+    findUser();
+  }
+
+  Future<void> findUser() async {
+    SharedPreferences preferences = await SharedPreferences.getInstance();
+    var result = preferences.getStringList('data');
+    userLogin = result![2];
   }
 
   @override
@@ -92,7 +104,9 @@ class _AddJobState extends State<AddJob> {
               .normalDialot('No Agree ?', 'Please Choose Yes or No');
         } else if (checkChooseItem()) {
           MyDialog(context: context)
-              .normalDialot('No Item', "Please Choose Item  'Test'  "  );
+              .normalDialot('No Item', "Please Choose Item  'Test'  ");
+        } else {
+          processUploadAndInsert();
         }
       });
 
@@ -399,5 +413,28 @@ class _AddJobState extends State<AddJob> {
     }
 
     return result;
+  }
+
+  Future<void> processUploadAndInsert() async {
+    String pathUpload = 'https://www.androidthai.in.th/sv/saveFileUng.php';
+    int code = Random().nextInt(1000000);
+    String nameFile = 'job$code.jpg';
+    print('nameFile ==> $nameFile');
+
+    Map<String, dynamic> map = {};
+    map['file'] = await MultipartFile.fromFile(file!.path, filename: nameFile);
+
+    FormData formData = FormData.fromMap(map);
+    await Dio().post(pathUpload, data: formData).then((value) async {
+      String pathImage = 'https://www.androidthai.in.th/sv/picUng/$nameFile';
+
+      print('pathImage = $pathImage');
+
+      String qrCode = 'code$code';
+
+      String pathInsert =
+          'https://www.androidthai.in.th/sv/insertJobUng.php?isAdd=true&nameRecord=$userLogin&jobName=$jobName&detailJob=$detailJob&factoryKey=$choosedFactoryKey&agree=$chooseAgree&item=${itemChooses.toString()}&addDate=$addDate&qRcode=$qrCode&pathImage=$pathImage';
+      await Dio().get(pathInsert).then((value) => Navigator.pop(context));
+    });
   }
 }
