@@ -1,8 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:officesv/utility/my_constant.dart';
+import 'package:officesv/utility/my_dialog.dart';
 import 'package:officesv/widgets/show_button.dart';
 import 'package:officesv/widgets/show_form.dart';
 import 'package:officesv/widgets/show_image.dart';
@@ -26,7 +28,7 @@ class _AddJobState extends State<AddJob> {
   ];
 
   int? choosedFactoryKey;
-  String? chooseAgree, addDate;
+  String? chooseAgree, addDate, jobName, detailJob;
 
   var itemChooses = <bool>[false, false, false];
   DateTime? dateTime;
@@ -65,13 +67,34 @@ class _AddJobState extends State<AddJob> {
               newAgree(),
               chooseItem(),
               newAddDate(),
-              ShowButton(label: 'Add Job to Server', pressFunc: () {}),
+              addJobButton(),
             ],
           ),
         )),
       ),
     );
   }
+
+  ShowButton addJobButton() => ShowButton(
+      label: 'Add Job to Server',
+      pressFunc: () {
+        if (file == null) {
+          MyDialog(context: context)
+              .normalDialot('No Picture ?', 'Please Take Photo');
+        } else if ((jobName?.isEmpty ?? true) || (detailJob?.isEmpty ?? true)) {
+          MyDialog(context: context)
+              .normalDialot('Have Space ?', 'Please Fill Job and Detail');
+        } else if (choosedFactoryKey == null) {
+          MyDialog(context: context)
+              .normalDialot('No FactoryKey ?', 'Please Choose Factory Key');
+        } else if (chooseAgree == null) {
+          MyDialog(context: context)
+              .normalDialot('No Agree ?', 'Please Choose Yes or No');
+        } else if (checkChooseItem()) {
+          MyDialog(context: context)
+              .normalDialot('No Item', "Please Choose Item  'Test'  "  );
+        }
+      });
 
   Container newAddDate() {
     return Container(
@@ -273,12 +296,18 @@ class _AddJobState extends State<AddJob> {
     return ShowForm(
         label: 'Detail :',
         iconData: Icons.details,
-        changeFunc: (String string) {});
+        changeFunc: (String string) {
+          detailJob = string.trim();
+        });
   }
 
   ShowForm newJob() {
     return ShowForm(
-        label: 'Job :', iconData: Icons.work, changeFunc: (String string) {});
+        label: 'Job :',
+        iconData: Icons.work,
+        changeFunc: (String string) {
+          jobName = string.trim();
+        });
   }
 
   SizedBox newImage() {
@@ -287,9 +316,14 @@ class _AddJobState extends State<AddJob> {
       height: 250,
       child: Stack(
         children: [
-          ShowImage(
-            path: 'images/picture.png',
-          ),
+          file == null
+              ? const ShowImage(
+                  path: 'images/picture.png',
+                )
+              : Image.file(
+                  file!,
+                  fit: BoxFit.cover,
+                ),
           Positioned(
             bottom: 8,
             right: 8,
@@ -326,11 +360,14 @@ class _AddJobState extends State<AddJob> {
           TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                processTakePhoto();
+                processTakePhoto(imageSource: ImageSource.camera);
               },
               child: const Text('Camera')),
           TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                Navigator.pop(context);
+                processTakePhoto(imageSource: ImageSource.gallery);
+              },
               child: const Text('Gallery')),
           TextButton(
               onPressed: () => Navigator.pop(context),
@@ -340,5 +377,27 @@ class _AddJobState extends State<AddJob> {
     );
   }
 
-  void processTakePhoto() {}
+  Future<void> processTakePhoto({required ImageSource imageSource}) async {
+    var result = await ImagePicker().pickImage(
+      source: imageSource,
+      maxWidth: 800,
+      maxHeight: 800,
+    );
+
+    setState(() {
+      file = File(result!.path);
+    });
+  }
+
+  bool checkChooseItem() {
+    bool result = true; // true ==> ยังไม่ได้เลือกอะไร เลย
+
+    for (var item in itemChooses) {
+      if (item) {
+        result = false;
+      }
+    }
+
+    return result;
+  }
 }
